@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Combat Game</title>
+    <style>
+        body {
+            background-image: url('images/fond.jpeg');
+            background-size: cover;
+            margin: 0;
+            font-family: 'Arial', sans-serif;
+            text-align: center;
+            margin: 50px;
+            background-color: #f0f0f0;
+            color: #333;
+        }
+
+        h1 {
+            color: #007bff;
+        }
+
+        #start-container, #game-container, #victory-container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            margin-top: 20px;
+        }
+
+        button {
+            margin-top: 10px;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+        }
+
+        select, button {
+            display: block;
+            margin: 10px auto;
+        }
+
+        #game-container, #victory-container {
+            display: none;
+        }
+
+        #battle-log, #creature-info, #victory-message {
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #e0e0e0;
+            border-radius: 5px;
+        }
+
+        #creature-images img {
+            max-width: 100%;
+            height: auto;
+            margin-top: 20px;
+            border-radius: 5px;
+        }
+
+        #health-panel {
+    margin-top: 20px;
+    padding: 10px;
+    background-color: #d6d6d6;
+    border-radius: 5px;
+    display: flex;
+    justify-content: space-around;
+}
+
+#health-panel p {
+    margin: 0;
+}
+
+#health-panel span {
+    font-weight: bold;
+}
+    </style>
+</head>
+<body>
+
+    <div id="start-container" class="container">
+
+        <h1>Combat Game</h1>
+
+        <label for="creature">Choisissez votre créature :</label>
+        <select id="creature">
+            <option value="dragon">Dragon</option>
+            <option value="unicorn">Licorne</option>
+            <option value="goblin">Gobelin</option>
+            <option value="phoenix">Phénix</option>
+            <option value="centaur">Centaure</option>
+            <option value="mermaid">Sirène</option>
+            <option value="robot">Robot</option>
+            <option value="troll">Troll</option>
+            <option value="fairy">Fée</option>
+            <option value="creature des ombres">Creature des ombres</option>
+        </select>
+
+        <label for="difficulty">Choisissez le niveau de difficulté :</label>
+        <select id="difficulty">
+            <option value="1">Facile</option>
+            <option value="2">Moyen</option>
+            <option value="3">Difficile</option>
+        </select>
+
+        <button onclick="startGame()">Commencer la partie</button>
+
+    </div>
+
+    <div id="game-container">
+
+        <h1>Combat Game</h1>
+
+        <div id="creature-info"></div>
+
+        <label for="playerAttack">Choisissez votre attaque :</label>
+        <select id="playerAttack">
+            <option value="basic">Attaque de base</option>
+            <option value="special">Attaque spéciale</option>
+            <option value="fireball">Boule de feu</option>
+        </select>
+
+        <button onclick="playerAttack()">Attaquer</button>
+        <button onclick="returnToMenu()">Retour au menu</button>
+
+        <div id="creature-images"></div>
+        <div id="battle-log"></div>
+        <div id="health-panel">
+            <p>Vos PV: <span id="player-health">${playerCreature.health}</span></p>
+            <p>PV de l'IA: <span id="enemy-health">${enemyCreature.health}</span></p>
+        </div>
+    </div>
+
+    <div id="victory-container">
+        <h1>Victoire!</h1>
+        <p id="victory-message"></p>
+        <button onclick="returnToMenu()">Retour au menu</button>
+
+    </div>
+
+    <script>
+        let playerCreature;
+        let enemyCreature;
+        let gameLevel;
+        let specialAttackUsed = false;
+        let healUsed = false;
+
+        function Creature(name, baseHealth, attack, defense, specialAttack, imageUrl) {
+            this.name = name;
+            this.baseHealth = baseHealth;
+            this.attack = attack;
+            this.defense = defense;
+            this.specialAttack = specialAttack;
+            this.imageUrl = imageUrl;
+            this.health = baseHealth;
+        }
+
+        function startGame() {
+            specialAttackUsed = false; 
+            healUsed = false;
+            const selectedCreature = document.getElementById('creature').value;
+            const difficulty = parseInt(document.getElementById('difficulty').value);
+
+            playerCreature = createCreature(selectedCreature, 'player');
+            gameLevel = difficulty;
+
+            const enemyCreatureTypes = getEnemyCreatureTypes();
+            const randomEnemyType = enemyCreatureTypes[Math.floor(Math.random() * enemyCreatureTypes.length)];
+
+            enemyCreature = createCreature(randomEnemyType, 'enemy');
+
+            updateCreatureInfo();
+
+            document.getElementById('battle-log').innerHTML = `<p>Partie commencée! ${playerCreature.name} contre ${enemyCreature.name} (Niveau ${gameLevel})</p>`;
+
+            // Activer les éléments après le démarrage du jeu
+            document.getElementById('playerAttack').disabled = false;
+            document.addEventListener('DOMContentLoaded', function () {
+    // Votre code ici, y compris la ligne pour désactiver l'option "heal"
+    document.querySelector('#playerAttack option[value="heal"]').disabled = true;
+})
+
+            // Masquer la section de démarrage et afficher la section de jeu
+            document.getElementById('start-container').style.display = 'none';
+            document.getElementById('game-container').style.display = 'block';
+            document.getElementById('victory-container').style.display = 'none';
+        }
+
+        function createCreature(creatureType, owner) {
+    let creature;
+
+    switch (creatureType) {
+        case 'dragon':
+            creature = new Creature('Dragon', 100, 15, 10, 'Souffle de feu', getImageUrl('dragon'), owner);
+            break;
+        case 'unicorn':
+            creature = new Creature('Licorne', 80, 20, 12, 'Rayon magique', getImageUrl('unicorn'), owner);
+            break;
+        case 'goblin':
+            creature = new Creature('Gobelin', 70, 12, 8, 'Coup sournois', getImageUrl('goblin'), owner);
+            break;
+        case 'phoenix':
+            creature = new Creature('Phénix', 120, 20, 15, 'Flamme éternelle', getImageUrl('phoenix'), owner);
+            break;
+        case 'centaur':
+            creature = new Creature('Centaure', 90, 17, 10, 'Fleche précise', getImageUrl('centaur'), owner);
+            break;
+        case 'mermaid':
+            creature = new Creature('Sirène', 85, 16, 12, 'Chant envoûtant', getImageUrl('mermaid'), owner);
+            break;
+        case 'robot':
+            creature = new Creature('Robot', 95, 20, 15, 'Rayon laser', getImageUrl('robot'), owner);
+            break;
+            case 'troll':
+            creature = new Creature('Troll', 110, 14, 12, 'Frappe puissante', getImageUrl('troll'), owner);
+            break;
+        case 'fairy':
+            creature = new Creature('Fée', 75, 18, 8, 'Poussière magique', getImageUrl('fairy'), owner);
+            break;
+        case 'creature des ombres':
+            creature = new Creature('Creature des ombres', 120, 15, 20, 'Tornade des ombres', getImageUrl('creature des ombres'), owner);
+            break;
+        case 'eleccrea':
+            creature = new Creature('Creature electrique', 120, 20, 15, 'Décharge electrique', getImageUrl('creature electrique'), owner);
+            break;
+        // Ajoutez des cas pour d'autres types de créatures
+        default:
+            console.error(`Type de créature inconnu : ${creatureType}`);
+            break;
+    }
+
+    return creature;
+}
+
+
+        function playerAttack() {
+    const selectedAttack = document.getElementById('playerAttack').value;
+    let playerDamage;
+
+    switch (selectedAttack) {
+        case 'basic':
+            playerDamage = calculateDamage(playerCreature.attack, enemyCreature.defense);
+            logBattle(`${playerCreature.name} utilise Attaque de base et inflige ${playerDamage} points de dégâts à ${enemyCreature.name}.`);
+            break;
+        case 'special':
+            if (!specialAttackUsed) {
+                playerDamage = calculateSpecialDamage(playerCreature.attack, enemyCreature.defense);
+                logBattle(`${playerCreature.name} utilise ${playerCreature.specialAttack} et inflige ${playerDamage} points de dégâts à ${enemyCreature.name}.`);
+                specialAttackUsed = true;
+            } else {
+                logBattle(`${playerCreature.name} a déjà utilisé l'attaque spéciale ce tour.`);
+                return;
+            }
+            break;
+        case 'fireball':
+            playerDamage = calculateFireballDamage(playerCreature.attack, enemyCreature.defense);
+            logBattle(`${playerCreature.name} lance une Boule de feu et inflige ${playerDamage} points de dégâts à ${enemyCreature.name}.`);
+            break;
+        // Ne rien faire pour 'heal' (attaquer spécifiquement l'attaque de soin)
+        default:
+            logBattle(`${playerCreature.name} ne peut pas effectuer cette attaque.`);
+    }
+
+    enemyCreature.health -= playerDamage;
+
+    if (enemyCreature.health <= 0) {
+        if (gameLevel === 3) {
+            displayVictory('Vous avez vaincu tous les ennemis!');
+        } else {
+            gameLevel++;
+            startGame();
+        }
+        return;
+    }
+
+    enemyAttack();
+        }
+
+        function enemyAttack() {
+            const availableAttacks = ['basic', 'special', 'fireball'];
+            const randomAttack = availableAttacks[Math.floor(Math.random() * availableAttacks.length)];
+            let enemyDamage;
+
+            switch (randomAttack) {
+                case 'basic':
+                    enemyDamage = calculateDamage(enemyCreature.attack, playerCreature.defense);
+                    logBattle(`${enemyCreature.name} utilise Attaque de base et inflige ${enemyDamage} points de dégâts à ${playerCreature.name}.`);
+                    break;
+                case 'special':
+                    enemyDamage = calculateSpecialDamage(enemyCreature.attack, playerCreature.defense);
+                    logBattle(`${enemyCreature.name} utilise ${enemyCreature.specialAttack} et inflige ${enemyDamage} points de dégâts à ${playerCreature.name}.`);
+                    break;
+                case 'fireball':
+                    enemyDamage = calculateFireballDamage(enemyCreature.attack, playerCreature.defense);
+                    logBattle(`${enemyCreature.name} lance une Boule de feu et inflige ${enemyDamage} points de dégâts à ${playerCreature.name}.`);
+                    break;
+                default:
+                    logBattle(`${enemyCreature.name} utilise une attaque inconnue.`);
+            }
+
+            playerCreature.health -= enemyDamage;
+
+            if (playerCreature.health <= 0) {
+                endGame(`${enemyCreature.name} remporte la partie!`);
+                return;
+            }
+
+            updateCreatureInfo();
+        }
+
+        function calculateDamage(attack, defense) {
+            return Math.max(0, attack - defense);
+        }
+
+        function calculateSpecialDamage(attack, defense) {
+            return Math.max(0, attack * 2 - defense);
+        }
+
+        function calculateFireballDamage(attack, defense) {
+            return Math.max(0, attack * 1.5 - defense);
+        }
+
+        function calculateHeal(attack, maxHealth) {
+            return Math.min(Math.floor(attack * 0.8), maxHealth - playerCreature.health);
+        }
+
+        function logBattle(message) {
+            document.getElementById('battle-log').innerHTML += `<p>${message}</p>`;
+        }
+
+        function updateCreatureInfo() {
+            const infoElement = document.getElementById('creature-info');
+            infoElement.innerHTML = `<p>${playerCreature.defense}, Attaque spéciale - ${playerCreature.specialAttack}</p>`;
+            infoElement.innerHTML += `<p>${enemyCreature.name} (IA): PV - ${enemyCreature.health}, Attaque - ${enemyCreature.attack}, Défense - ${enemyCreature.defense} (Niveau ${gameLevel}), Attaque spéciale - ${enemyCreature.specialAttack}</p>`;
+
+            const imagesElement = document.getElementById('creature-images');
+            imagesElement.innerHTML = `<img src="${playerCreature.imageUrl}" alt="${playerCreature.name}">`;
+            imagesElement.innerHTML += `<img src="${enemyCreature.imageUrl}" alt="${enemyCreature.name}">`;
+
+            const playerHealthElement = document.getElementById('player-health');
+    const enemyHealthElement = document.getElementById('enemy-health');
+    
+    playerHealthElement.textContent = playerCreature.health;
+    enemyHealthElement.textContent = enemyCreature.health;
+        }
+
+        function endGame(message) {
+    document.getElementById('battle-log').innerHTML += `<p>${message}</p>`;
+    document.getElementById('battle-log').innerHTML += `<p>La partie est terminée.</p>`;
+    document.getElementById('playerAttack').disabled = true;
+    document.getElementById('game-container').style.display = 'none';
+    document.getElementById('victory-container').style.display = 'block';
+    document.getElementById('victory-message').innerHTML = "Défaite!";
+}
+
+        function displayVictory(message) {
+            document.getElementById('victory-message').innerHTML = message;
+            document.getElementById('game-container').style.display = 'none';
+            document.getElementById('victory-container').style.display = 'block';
+        }
+
+        function returnToMenu() {
+            document.getElementById('start-container').style.display = 'block';
+            document.getElementById('game-container').style.display = 'none';
+            document.getElementById('victory-container').style.display = 'none';
+            document.getElementById('battle-log').innerHTML = '';
+            document.getElementById('playerAttack').disabled = false;
+        }
+
+        function getEnemyCreatureTypes() {
+            if (gameLevel === 1) {
+                return ['dragon', 'unicorn', 'goblin'];
+            } else if (gameLevel === 2) {
+                return ['phoenix', 'centaur', 'mermaid'];
+            } else {
+                return ['dragon', 'unicorn', 'goblin', 'phoenix', 'centaur', 'mermaid'];
+            }
+        }
+
+        function getImageUrl(creatureType) {
+    // Ajoutez des cas pour les nouvelles créatures
+    switch (creatureType) {
+        case 'dragon':
+            return 'images/dragon.jpg';
+        case 'unicorn':
+            return 'images/unicorn.jpg';
+        case 'goblin':
+            return 'images/goblin.jpg';
+        case 'phoenix':
+            return 'images/phoenix.jpg';
+        case 'centaur':
+            return 'images/centaur.jpg';
+        case 'mermaid':
+            return 'images/mermaid.jpg';
+        case 'robot':
+            return 'images/robot.jpg';
+        case 'troll':
+            return 'images/troll.jpg';
+        case 'fairy':
+            return 'images/fairy.jpg';
+        case 'creature des ombres':
+            return 'images/creadesombres.jpg';
+        case 'eleccrea':
+            return 'images/eleccrea.jpg';
+        default:
+            console.error(`Type de créature inconnu : ${creatureType}`);
+            return 'images/default.jpg';  // Image par défaut en cas d'erreur
+    }
+}
+    </script>
+</body>
+</html>
